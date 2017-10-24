@@ -7,6 +7,9 @@ require_once 'view/searchInput.html';
 require_once 'model/Domain.php';
 require_once 'model/inc/db.inc.php';
 
+// /https?:\/\/w{3}\.[a-z]+\.[a-z]{2,3}/
+
+// Create db-connection
 Domain::connectToDb($db);
 
 $domain = new Domain();
@@ -14,26 +17,29 @@ $domains = $domain->getAllDomains();
 
 $reloaded = false;
 
-function searchURL($domain)
+/**
+ * @param string $domain
+ * the given url (Browse the URL)
+ *
+ * @return array
+ * array with search results (links found)
+ *
+ */
+function searchURL(string $domain) : array
 {
-
+    // Retrieve the entire content(html) from the specified domain
     $url = 'http://' . $domain->getDomain();
     $theHtmlToParse = file_get_contents($url);
 
-    $doc = new DOMDocument();
-    libxml_use_internal_errors(true);
-    $doc->loadHTML($theHtmlToParse);
+    // Filter all links from the content
+    $pattern = '/https?:\/\/w{3}\.[a-z]+\.[a-z]{2,3}/';
+    preg_match_all($pattern, $theHtmlToParse, $ausgabe);
 
-    $links = $doc->getElementsByTagName('a');
-    $linksArray = [];
-
-    foreach ($links as $link)
-    {
-        array_push($linksArray, $link->nodeValue);
-    }
-    return $linksArray;
+    // Return array with the result links
+    return $ausgabe;
 }
 
+// Filter the links >> work on here
 function sortUrlList($linksArray)
 {
     $externPattern = '/w{3}./';
@@ -69,16 +75,20 @@ function createInternUrl($domain, $sortedUrlList)
     return $internUrlList;
 }
 
+// Set reload flag
 if(isset($_SESSION['lastSubmit']) && $_SESSION['lastSubmit'] == $_POST['domain'])
 {
     $reloaded = true;
 }
 
+// Get the input url
 if(!empty($_POST['domain']) && !$reloaded)
 {
+    // Set domain from input field and save it in db
     $domain->setDomain($_POST['domain']);
     $domain->insertData($_POST);
 
+    // Start crawling
     $linksArrayGlobal = searchURL($domain);
     $sortedUrlList = sortUrlList($linksArrayGlobal);
 
@@ -92,12 +102,3 @@ if(!empty($_POST['domain']) && !$reloaded)
 }
 
 var_dump($domains);
-
-
-// Search URL in the web and list all links >> DONE
-
-// Group the links in category intern and extern >> DONE
-
-// Search extern links and sort them by domain
-
-// Save result in database
