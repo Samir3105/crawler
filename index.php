@@ -12,9 +12,12 @@ require_once 'model/inc/db.inc.php';
 // Create db-connection
 Domain::connectToDb($db);
 
+// Create domain and get all searched
 $domain = new Domain();
 $domains = $domain->getAllDomains();
+//$givenUrl = $domain->getDomain();
 
+// Flag for page reload
 $reloaded = false;
 
 /**
@@ -25,10 +28,10 @@ $reloaded = false;
  * array with search results (links found)
  *
  */
-function searchURL(string $domain) : array
+function searchURL(string $searchDomain) : array
 {
     // Retrieve the entire content(html) from the specified domain
-    $url = 'http://' . $domain->getDomain();
+    $url = 'http://' . $searchDomain;
     $theHtmlToParse = file_get_contents($url);
 
     // Filter all links from the content
@@ -39,24 +42,37 @@ function searchURL(string $domain) : array
     return $ausgabe;
 }
 
-// Filter the links >> work on here
-function sortUrlList($linksArray)
+/**
+ * @param array $linksArray
+ * array which contains internal and external links from the given url
+ *
+ * @param string $givenUrl
+ * the given url
+ *
+ * @return array
+ * associative array with sorted links (intern, extern)
+ */
+function sortUrlList(array $linksArray, string $givenUrl) : array
 {
-    $externPattern = '/w{3}./';
-    $externLinks = preg_grep($externPattern, $linksArray);  // Extern Links
+    // Separate internal and external link and store it in the respective array
+    $internPattern = '/https?:\/\/'.$givenUrl.'/';
+    $internLinks = [];
+    $externLinks = [];
 
-    $internMailLinks = array_diff($linksArray, $externLinks);
-
-    $mailPattern = '/.[@]./';
-    $mailLinks = preg_grep($mailPattern, $internMailLinks);
-
-    $internLinks = array_diff($internMailLinks, $mailLinks);
-    $trimmedArray = array_map('trim', $internLinks);
-
-    $internLinksFiltered = array_filter($trimmedArray);  // Intern Links
+    foreach ($linksArray[0] as $url)
+    {
+        if(preg_match_all($internPattern, $url) === 1)
+        {
+            array_push($internLinks, $url);
+        }
+        else
+        {
+            array_push($externLinks, $url);
+        }
+    }
 
     $sortedlinks = [
-        'intern' => $internLinksFiltered,
+        'intern' => $internLinks,
         'extern' => $externLinks
     ];
 
@@ -89,8 +105,8 @@ if(!empty($_POST['domain']) && !$reloaded)
     $domain->insertData($_POST);
 
     // Start crawling
-    $linksArrayGlobal = searchURL($domain);
-    $sortedUrlList = sortUrlList($linksArrayGlobal);
+    $linksArrayGlobal = searchURL($domain->getDomain());
+    $sortedUrlList = sortUrlList($linksArrayGlobal, $domain->getDomain());
 
     $internLinks = createInternUrl($domain, $sortedUrlList);
     $externUrlList = $sortedUrlList['extern'];
