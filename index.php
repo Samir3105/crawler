@@ -22,21 +22,20 @@ $domains = $domain->getAllDomains();
 $reloaded = false;
 
 /**
- * @param string $domain
+ * @param string $urlSearchThrough
  * the given url (Browse the URL)
  *
  * @return array
  * array with search results (links found)
  *
  */
-function searchURL(string $searchDomain) : array
+function searchWebLinkInUrl(string $urlSearchThrough) : array
 {
     // Retrieve the entire content(html) from the specified domain
-    $url = 'http://' . $searchDomain;
+    $url = 'http://' . $urlSearchThrough;
     $theHtmlToParse = file_get_contents($url);
 
     // Filter all links from the content
-    //$pattern = '/https?:\/\/w{3}\.[a-z]+\.[a-z]{2,3}/';
     $pattern = '/https?:\/\/w{3}\.[a-z]+\.[a-z]+(\/?([a-z]+)?)+(\.html)?/';
     preg_match_all($pattern, $theHtmlToParse, $ausgabe);
 
@@ -81,6 +80,15 @@ function sortUrlList(array $linksArray, string $givenUrl) : array
     return $sortedlinks;
 }
 
+function filterSortedUrlListAndSave(array $sortedUrlList, $domain)
+{
+    $filteredInternLinks = array_unique($sortedUrlList['intern']);
+    $filteredExternLinks = array_unique($sortedUrlList['extern']);
+
+    // Save the url's here
+    $domain->insertData($_POST, $filteredExternLinks, $filteredInternLinks);
+}
+
 // Set reload flag
 if(isset($_SESSION['lastSubmit']) && $_SESSION['lastSubmit'] == $_POST['domain'])
 {
@@ -90,13 +98,15 @@ if(isset($_SESSION['lastSubmit']) && $_SESSION['lastSubmit'] == $_POST['domain']
 // Get the input url
 if(!empty($_POST['domain']) && !$reloaded)
 {
-    // Set domain from input field and save it in db
+    // Set domain from input field
     $domain->setDomain($_POST['domain']);
-    $domain->insertData($_POST);
 
     // Start crawling
-    $linksArrayGlobal = searchURL($domain->getDomain());
+    $linksArrayGlobal = searchWebLinkInUrl($domain->getDomain());
     $sortedUrlList = sortUrlList($linksArrayGlobal, $domain->getDomain());
+
+    // Filter $sortedUrlList and save them in db
+    filterSortedUrlListAndSave($sortedUrlList, $domain);
 
     var_dump($sortedUrlList);
     echo '----------------------------- INTERNE LINKS';
