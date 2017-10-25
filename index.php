@@ -81,18 +81,6 @@ function sortUrlList(array $linksArray, string $givenUrl) : array
     return $sortedlinks;
 }
 
-/*function createInternUrl($domain, $sortedUrlList)
-{
-    $internUrlList = $sortedUrlList['intern'];
-
-    foreach ($internUrlList as &$url)
-    {
-        $url = 'http://' . $domain->getDomain() . '/' . $url;
-    }
-
-    return $internUrlList;
-}*/
-
 // Set reload flag
 if(isset($_SESSION['lastSubmit']) && $_SESSION['lastSubmit'] == $_POST['domain'])
 {

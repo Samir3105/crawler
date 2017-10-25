@@ -58,21 +58,68 @@ class Domain
      * ACTIVE RECORD
      */
 
-    public function insertData()
+    public function insertData($filteredExternLinks, $filteredInternLinks)
     {
         if (!empty($_POST)) {
 
+            $url = $_POST['domain'];
+
             try
             {
-                $sql = 'INSERT INTO domains (domain) VALUES (:domain)';
-
-                $statement = self::$db->prepare($sql);
-                $statement->execute($_POST);
+                $this->insertGivenUrl($_POST);
+                $this->insertExternLinks($filteredExternLinks, $url);
+                $this->insertInternLinks($filteredInternLinks, $url);
             }
             catch (PDOException $e)
             {
                 echo $e;
             }
+        }
+    }
+
+    private function insertGivenUrl($url)
+    {
+        $sql = 'INSERT INTO domains (domain) VALUES (:domain)';
+        $statement = self::$db->prepare($sql);
+        $statement->execute($_POST);
+    }
+
+    private function getUrlId($url)
+    {
+        $givenUrl = [$url];
+        $sql = 'SELECT id from domains WHERE domain=?';
+        $statement = self::$db->prepare($sql);
+        //$statement->bindValue(':url', $url);
+        $statement->execute($givenUrl);
+        $id = $statement->fetch();
+        return $id;
+    }
+
+    private function insertExternLinks($filteredExternLinks, $url)
+    {
+        $id = $this->getUrlId($url);
+
+        foreach ($filteredExternLinks as $externLink)
+        {
+            $sqlExternLinks= 'INSERT INTO externdomains (externdomain, domain_id_fk) VALUES (?, ?)';
+            $statement = self::$db->prepare($sqlExternLinks);
+
+            $link = [$externLink, $id['id']];
+            $statement->execute($link);
+        }
+    }
+
+    private function insertInternLinks($filteredInternLinks, $url)
+    {
+        $id = $this->getUrlId($url);
+
+        foreach ($filteredInternLinks as $internLink)
+        {
+            $sqlInternLinks= 'INSERT INTO subdomains (subdomain, domain_id_fk) VALUES (?, ?)';
+            $statement = self::$db->prepare($sqlInternLinks);
+
+            $link = [$internLink, $id['id']];
+            $statement->execute($link);
         }
     }
 
