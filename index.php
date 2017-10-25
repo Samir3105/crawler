@@ -8,14 +8,15 @@ require_once 'model/Domain.php';
 require_once 'model/inc/db.inc.php';
 
 // /https?:\/\/w{3}\.[a-z]+\.[a-z]{2,3}/
+// https?:\/\/w{3}\.[a-z]+\.[a-z]+\/?([a-z]+)?
+// https?:\/\/w{3}\.[a-z]+\.[a-z]+(\/?([a-z]+)?)+(\.html)?
 
-// Create db-connection
+// Create db connection
 Domain::connectToDb($db);
 
 // Create domain and get all searched
 $domain = new Domain();
 $domains = $domain->getAllDomains();
-//$givenUrl = $domain->getDomain();
 
 // Flag for page reload
 $reloaded = false;
@@ -35,7 +36,8 @@ function searchURL(string $searchDomain) : array
     $theHtmlToParse = file_get_contents($url);
 
     // Filter all links from the content
-    $pattern = '/https?:\/\/w{3}\.[a-z]+\.[a-z]{2,3}/';
+    //$pattern = '/https?:\/\/w{3}\.[a-z]+\.[a-z]{2,3}/';
+    $pattern = '/https?:\/\/w{3}\.[a-z]+\.[a-z]+(\/?([a-z]+)?)+(\.html)?/';
     preg_match_all($pattern, $theHtmlToParse, $ausgabe);
 
     // Return array with the result links
@@ -79,7 +81,7 @@ function sortUrlList(array $linksArray, string $givenUrl) : array
     return $sortedlinks;
 }
 
-function createInternUrl($domain, $sortedUrlList)
+/*function createInternUrl($domain, $sortedUrlList)
 {
     $internUrlList = $sortedUrlList['intern'];
 
@@ -89,7 +91,7 @@ function createInternUrl($domain, $sortedUrlList)
     }
 
     return $internUrlList;
-}
+}*/
 
 // Set reload flag
 if(isset($_SESSION['lastSubmit']) && $_SESSION['lastSubmit'] == $_POST['domain'])
@@ -108,13 +110,13 @@ if(!empty($_POST['domain']) && !$reloaded)
     $linksArrayGlobal = searchURL($domain->getDomain());
     $sortedUrlList = sortUrlList($linksArrayGlobal, $domain->getDomain());
 
-    $internLinks = createInternUrl($domain, $sortedUrlList);
-    $externUrlList = $sortedUrlList['extern'];
-
-    $_SESSION['lastSubmit'] = $_POST['domain'];
     var_dump($sortedUrlList);
-    var_dump($internLinks);
-    var_dump($externUrlList);
+    echo '----------------------------- INTERNE LINKS';
+    var_dump($sortedUrlList['intern']);
+
+    echo '----------------------------- EXTERNE LINKS';
+    var_dump($sortedUrlList['extern']);
 }
 
+echo '----------------------------- ALL DOMAINS';
 var_dump($domains);
